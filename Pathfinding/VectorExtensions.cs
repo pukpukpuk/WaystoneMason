@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace WaystoneMason.PathFinding
+namespace WaystoneMason.Pathfinding
 {
     public static class VectorExtensions
     {

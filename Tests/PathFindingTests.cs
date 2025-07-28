@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using UnityEngine;
-using WaystoneMason.PathFinding;
-using WaystoneMason.PathFinding.Core;
+using WaystoneMason.Pathfinding;
+using WaystoneMason.Pathfinding.Core;
 
 namespace WaystoneMason.Tests
 {

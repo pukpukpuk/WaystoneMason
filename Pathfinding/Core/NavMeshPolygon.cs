@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace WaystoneMason.PathFinding.Core
+namespace WaystoneMason.Pathfinding.Core
 {
     public class NavMeshPolygon
     {

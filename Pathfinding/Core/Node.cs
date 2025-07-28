@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace WaystoneMason.PathFinding.Core
+namespace WaystoneMason.Pathfinding.Core
 {
     public class Node
     {

@@ -1,7 +1,7 @@
 using UnityEngine;
-using WaystoneMason.PathFinding.Core;
+using WaystoneMason.Pathfinding.Core;
 
-namespace WaystoneMason.PathFinding.Generation
+namespace WaystoneMason.Pathfinding.Generation
 {
     public record PolygonSide(Vector2 A, Vector2 B, NavMeshPolygon Polygon)
     {

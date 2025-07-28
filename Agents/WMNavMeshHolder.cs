@@ -1,13 +1,13 @@
 using System;
 using UnityEngine;
-using WaystoneMason.PathFinding.Core;
+using WaystoneMason.Pathfinding.Core;
 
 namespace WaystoneMason.Agents
 {
     public class WMNavMeshHolder : MonoBehaviour
     {
         public float AgentRadius = .25f;
-        public float RebuildCallPeriod = 1f;
+        public float RebuildCallPeriod = .5f;
         
         private float _nextRebuildAt;
 
@@ -18,13 +18,14 @@ namespace WaystoneMason.Agents
         private void Awake()
         {
             NavMesh = new NavMesh(AgentRadius);
+            CreateEmptyChunks();
         }
 
         private void Update()
         {
             if (!Mathf.Approximately(AgentRadius, NavMesh.AgentRadius))
             {
-                Debug.Log("The agent's radius can only be changed before the NavMesh initialization");
+                Debug.LogWarning("The agent's radius can only be changed before the NavMesh initialization");
             }
             
             UpdateRebuild();
@@ -42,6 +43,18 @@ namespace WaystoneMason.Agents
         private void OnDrawGizmosSelected()
         {
             NavMesh?.DrawGizmos();
+        }
+
+        private void CreateEmptyChunks()
+        {
+            var rect = WMObstaclesHolder.Instance.PregeneratedEmptyChunksRegion;
+
+            foreach (var chunkPosition in WMObstaclesHolder.GetChunksInRect(rect.min, rect.max))
+            {
+                NavMesh.GetOrCreateChunk(chunkPosition);
+            }
+            
+            NavMesh.Rebuild();
         }
     }
 }

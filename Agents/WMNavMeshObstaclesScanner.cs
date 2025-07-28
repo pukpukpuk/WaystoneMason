@@ -1,36 +1,72 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
 using UnityEngine;
+using WaystoneMason.Utils;
 
 namespace WaystoneMason.Agents
 {
     public class WMNavMeshObstaclesScanner : MonoBehaviour
     {
         [HideInInspector] public ObstaclesScanType ScanType;
-        [HideInInspector] public float FiniteScanRadius;
+        [HideInInspector] public float ScanRadius;
         
-        public WMNavMeshHolder Holder;
+        public WMNavMeshHolder PreferredHolder;
+
+        private WMNavMeshHolder _holder;
+        
+        private readonly HashSet<WMDynamicObstacle> _obstaclesOnNavMesh = new();
+        
+        public Vector2 Center => transform.position;
         
         private void OnValidate()
         {
-            Holder ??= GetComponent<WMNavMeshHolder>() ?? GetComponent<WMAgent>()?.Holder;
+            PreferredHolder ??= GetComponent<WMNavMeshHolder>() ?? GetComponent<WMAgent>()?.Holder;
         }
-
+        
         private void OnEnable()
         {
-            Holder.OnBeforeRebuild += HandleOnBeforeRebuild;
+            _holder ??= PreferredHolder;
+            _holder.OnBeforeRebuild += HandleOnBeforeRebuild;
         }
         
         private void OnDisable()
         {
-            Holder.OnBeforeRebuild -= HandleOnBeforeRebuild;
+            _holder.OnBeforeRebuild -= HandleOnBeforeRebuild;
         }
 
         private void HandleOnBeforeRebuild()
         {
             if (ScanType == ObstaclesScanType.Disabled) return;
             
-            // TODO синглтон в который все препятствия каждый раз при перемещении отчитываются
+            var obstaclesHolder = WMObstaclesHolder.Instance;
+            var obstacles = ScanType == ObstaclesScanType.InfiniteRadius 
+                ? obstaclesHolder.GetObstacles() 
+                : obstaclesHolder.GetObstacles(Center, ScanRadius);
+
+            var navMesh = _holder.NavMesh;
+            foreach (var obstacle in obstacles)
+            {
+                obstacle.Affect(navMesh);
+                _obstaclesOnNavMesh.Add(obstacle);
+            }
+
+            foreach (var obstacle in _obstaclesOnNavMesh.ToList())
+            {
+                var actualState = obstacle.IsActualOn(navMesh, out var currentContour, out var bounds);
+
+                if (obstacle && actualState) continue;
+                if (!WMObstaclesHolder.IsInRadius(currentContour, bounds, Center, ScanRadius)) continue;
+                
+                navMesh.RemoveObstacle(currentContour);
+                _obstaclesOnNavMesh.Remove(obstacle);
+            }
         }
         
-        // TODO гизмосом показывай область скана 
+        private void OnDrawGizmosSelected()
+        {
+            GizmosUtils.DrawCircle(Center, ScanRadius, GizmosUtils.Yellow, .005f, .25f);
+        }
     }
 }

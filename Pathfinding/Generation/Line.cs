@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace WaystoneMason.PathFinding.Generation
+namespace WaystoneMason.Pathfinding.Generation
 {
     public readonly struct Line : IEquatable<Line>
     {

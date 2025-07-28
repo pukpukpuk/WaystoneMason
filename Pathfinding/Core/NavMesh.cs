@@ -3,14 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using Clipper2Lib;
 using UnityEngine;
+using WaystoneMason.Utils;
 
-namespace WaystoneMason.PathFinding.Core
+namespace WaystoneMason.Pathfinding.Core
 {
     public class NavMesh
     {
         private readonly Dictionary<Vector2Int, Chunk> _chunks = new();
 
-        private readonly Dictionary<PathsD, PathsD> _cachedInflatedObstacles = new();
+        private readonly Dictionary<PathD, PathsD> _cachedInflatedObstacles = new();
         private readonly HashSet<Chunk> _dirtyChunks = new();
 
         public float AgentRadius { get; }
@@ -37,17 +38,17 @@ namespace WaystoneMason.PathFinding.Core
             return true;
         }
         
-        public void AddObstacle(PathsD paths, bool permanent = false)
+        public void AddObstacle(PathD path, bool permanent = false)
         {
-            if (_cachedInflatedObstacles.ContainsKey(paths))
+            if (_cachedInflatedObstacles.ContainsKey(path))
             {
                 throw new ArgumentException("This obstacle is already included!");
             }
             
-            var inflated = Clipper.InflatePaths(paths, AgentRadius, JoinType.Miter, EndType.Polygon);
+            var inflated = Clipper.InflatePaths(new PathsD {path}, AgentRadius, JoinType.Miter, EndType.Polygon);
             var bounds = Clipper.GetBounds(inflated);
             
-            _cachedInflatedObstacles.Add(paths, inflated);
+            _cachedInflatedObstacles.Add(path, inflated);
             
             foreach (var chunk in GetObstacleChunks(bounds))
             {
@@ -56,9 +57,9 @@ namespace WaystoneMason.PathFinding.Core
             }
         }
 
-        public void RemoveObstacle(PathsD paths)
+        public void RemoveObstacle(PathD path)
         {
-            if (!_cachedInflatedObstacles.Remove(paths, out var inflated))
+            if (!_cachedInflatedObstacles.Remove(path, out var inflated))
             {
                 throw new ArgumentException("This obstacle wasn't included anyway!");
             }
@@ -71,9 +72,9 @@ namespace WaystoneMason.PathFinding.Core
             }
         }
 
-        public bool ContainsObstacle(PathsD paths)
+        public bool ContainsObstacle(PathD path)
         {
-            return _cachedInflatedObstacles.ContainsKey(paths);
+            return _cachedInflatedObstacles.ContainsKey(path);
         }
 
         public void Rebuild()
@@ -86,6 +87,17 @@ namespace WaystoneMason.PathFinding.Core
         {
             return _chunks.TryGetValue(chunkPosition, out chunk);
         }
+
+        public Chunk GetOrCreateChunk(Vector2Int chunkPosition)
+        {
+            if (!_chunks.TryGetValue(chunkPosition, out var chunk))
+            {
+                chunk = _chunks[chunkPosition] = new Chunk(this, chunkPosition);
+                _dirtyChunks.Add(chunk);
+            }
+
+            return chunk;
+        }
         
         private IEnumerable<Chunk> GetObstacleChunks(RectD bounds)
         {
@@ -96,12 +108,9 @@ namespace WaystoneMason.PathFinding.Core
             for (int y = min.y; y <= max.y; y++)
             {
                 var chunkPosition = new Vector2Int(x, y);
-                if (!_chunks.TryGetValue(chunkPosition, out var set))
-                {
-                    set = _chunks[chunkPosition] = new Chunk(this, chunkPosition);
-                }
+                var chunk = GetOrCreateChunk(chunkPosition);
 
-                yield return set;
+                yield return chunk;
             }
         }
         
@@ -147,18 +156,14 @@ namespace WaystoneMason.PathFinding.Core
                 mesh.SetVertices(vertices);
                 mesh.SetTriangles(triangles, 0);
                 mesh.RecalculateNormals();
-                
-                Gizmos.color = new Color(.7f, .3f, .7f, .05f);
-                Gizmos.DrawMesh(mesh);
-                
-                Gizmos.color = new Color(.7f, .3f, .7f, .65f);
-                Gizmos.DrawWireMesh(mesh);
+
+                GizmosUtils.DrawMesh(mesh, GizmosUtils.Magenta, .05f, .65f);
                 
                 foreach (var polygon in chunk.Polygons)
                 {
                     if (!alreadyDrawn.Add(polygon)) continue;
                     
-                    Gizmos.color = new Color(.2f, .8f, .8f);
+                    Gizmos.color = GizmosUtils.Cyan;
                     foreach (var neighbor in polygon.Neighbors)
                     {
                         Gizmos.DrawLine(polygon.Centroid, neighbor.Centroid);

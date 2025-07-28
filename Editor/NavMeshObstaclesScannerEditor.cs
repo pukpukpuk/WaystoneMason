@@ -17,8 +17,8 @@ namespace WaystoneMason.Editor
 
             if (scanner.ScanType == ObstaclesScanType.FiniteRadius)
             {
-                var unclamped = EditorGUILayout.FloatField("Scan Radius", scanner.FiniteScanRadius);
-                scanner.FiniteScanRadius = Math.Max(unclamped, 0);
+                var unclamped = EditorGUILayout.FloatField("Scan Radius", scanner.ScanRadius);
+                scanner.ScanRadius = Math.Max(unclamped, 0);
             }
         }
     }

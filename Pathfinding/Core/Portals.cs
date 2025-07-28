@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace WaystoneMason.PathFinding.Core
+namespace WaystoneMason.Pathfinding.Core
 {
     public record Portals
     {

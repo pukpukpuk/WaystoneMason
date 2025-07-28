@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using Clipper2Lib;
 using UnityEngine;
-using WaystoneMason.PathFinding.Generation;
+using WaystoneMason.Pathfinding.Generation;
 
-namespace WaystoneMason.PathFinding.Core
+namespace WaystoneMason.Pathfinding.Core
 {
     public class Chunk
     {

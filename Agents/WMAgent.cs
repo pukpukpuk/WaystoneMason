@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using WaystoneMason.Utils;
 
 namespace WaystoneMason.Agents
 {
@@ -76,7 +77,7 @@ namespace WaystoneMason.Agents
                 if (i < corners.Count - 1) lines[i * 2] = corners[i];
             }
         
-            Gizmos.color = new Color(.3f, .7f, .3f, .8f);     
+            Gizmos.color = GizmosUtils.Green.WithAlpha(.8f);     
             Gizmos.DrawLineList(new ReadOnlySpan<Vector3>(lines));
         }
         

@@ -3,9 +3,9 @@ using System.Linq;
 using Clipper2Lib;
 using LibTessDotNet;
 using UnityEngine;
-using WaystoneMason.PathFinding.Core;
+using WaystoneMason.Pathfinding.Core;
 
-namespace WaystoneMason.PathFinding.Generation
+namespace WaystoneMason.Pathfinding.Generation
 {
     public static class Triangulation
     {
