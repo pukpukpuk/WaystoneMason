@@ -1,6 +1,6 @@
-<p align="center"><img src="Documentation/Images/Cover.png" width="500" ></p>
+<p align="center"><img src="Images/Cover.png" width="500" ></p>
 
-[Документация на русском](Documentation/README-RU.md)
+[Документация на русском](README-RU.md)
 
 [**Waystone Mason**](#semantics-of-the-name) is a library for 2D pathfinding using navmeshes.
 
