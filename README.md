@@ -1,4 +1,4 @@
-<p align="center"><img src="Images/Cover.png" width="500" ></p>
+<p align="center"><img src="Documentation/Images/Cover.png" width="500" ></p>
 
 [Документация на русском](README-RU.md)
 
