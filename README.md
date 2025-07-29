@@ -9,6 +9,8 @@ What makes this project different from existing solutions?
 - You can manually control how obstacle updates affect the navmesh,
   which can be used, for example, to simulate agents’ memory.
 
+---
+
 # Brief Description of How It Works
 
 ### NavMesh Operation
@@ -16,7 +18,7 @@ The walkable area is marked with triangles — if there is no triangle, the area
 Triangles are stored via a spatial index — in other words, grouped into **chunks**, which are square areas of fixed size arranged in a grid.
 
 Accordingly, a chunk will only be created automatically if an obstacle appears within its bounds.  
-Therefore, it is recommended to pre-generate chunks in required areas either manually via `NavMesh.GetOrCreateChunk()`,  
+Therefore, it is recommended to pre-generate chunks in required areas either manually via `NavMesh.GetOrCreateChunk(Vector2Int)`,  
 or define a region for pre-generation via [WMObstaclesHolder.PregeneratedEmptyChunksRegion](#WMObstaclesHolder)
 
 ### Pathfinding Operation
@@ -39,12 +41,12 @@ On game start, it creates a NavMesh instance with a given agent radius and perio
 Has an event `OnBeforeRebuild`, which is called before each rebuild. Useful for manually scanning obstacles.
 
 ### WMAgent
-Has a method for setting a movement target – `SetGoal()`.  
+Has a method for setting a movement target – `SetGoal(Vector2)`.  
 When called, the agent computes a path to the goal using the NavMesh from the specified `WMNavMeshHolder` and starts following it.
 
 ### WMDynamicObstacle
-Builds an obstacle contour based on the specified collider. Does nothing on its own —  
-you must call the `Affect()` method to apply its state to the given navmesh.
+Based on the specified collider, it builds the obstacle's contour. It doesn't affect navmeshes on its own —
+you need to call its `Affect(NavMesh)` method to update its state on the given navmesh.
 
 ### WMObstaclesHolder
 Container for all obstacles in the scene. Allows efficiently querying obstacles within a radius.
@@ -54,12 +56,20 @@ The field `PregeneratedEmptyChunksRegion` defines a rectangular region where emp
 **This component is required for the others to work.**
 
 ### WMNavMeshObstaclesScanner
-Scans for suitable `WMDynamicObstacle`s based on specified conditions  
-and calls their `Affect()` method for the target `WMNavMeshHolder`.
+Based on the specified conditions, it searches for suitable `WMDynamicObstacle` instances and calls their `Affect(NavMesh)` method for the given `WMNavMeshHolder`.
+
+For obstacles that have changed state (e.g. moved or had their contour shape modified) since their last update, two contours formally exist:
+- the previous contour — the one that existed at the time of the last `Affect()` call;
+- and the current contour — the one matching the obstacle’s current shape or position.
+
+If only the previous contour falls within the scan radius, the scanner assumes the obstacle has either disappeared or moved,  
+and removes it from the navmesh.
+
+If the current contour is within range, the scanner adds it to the navmesh and also removes the outdated one.
 
 ## Manual Control
 
-If the built-in components are not enough and you need finer control over navmesh content,  
+If the built-in components are not enough, and you need finer control over navmesh content,  
 drop down to the core library level.
 
 To create a navmesh, you only need to specify the agent collider radius.  
@@ -74,7 +84,7 @@ To manually add an obstacle, pass its contour as a `Clipper.PathD` object.
 To reflect the change, you must remove the old one and add the updated one.
 
 ```cs
-var triangleObstacle = new PathsD { new PathD { new PointD(0, 0), new PointD(1, 0), new PointD(1, 1) } };
+var triangleObstacle = new PathD { new PointD(0, 0), new PointD(1, 0), new PointD(1, 1) };
 navMesh.AddObstacle(triangleObstacle);
 navMesh.Rebuild();
 
@@ -86,8 +96,9 @@ navMesh.AddObstacle(translated);
 navMesh.Rebuild();
 ```
 
-If the obstacle is meant to never change or disappear, you can add it permanently to the navmesh.  
-Permanent obstacles cannot be removed, but are cheaper to process.
+If the obstacle is not supposed to change or disappear during game, it can be added to the navmesh permanently.
+During navmesh rebuilding, permanent obstacles are processed more cheaply than dynamic ones,
+but they cannot be removed from the navmesh later.
 
 ```cs
 navMesh.AddObstacle(triangleObstacle, true);
