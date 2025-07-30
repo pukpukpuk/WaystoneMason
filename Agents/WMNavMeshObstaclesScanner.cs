@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using UnityEditor;
 using UnityEngine;
 using WaystoneMason.Utils;
+using Vector2 = UnityEngine.Vector2;
 
 namespace WaystoneMason.Agents
 {
@@ -40,10 +42,12 @@ namespace WaystoneMason.Agents
         {
             if (ScanType == ObstaclesScanType.Disabled) return;
             
+            var matrix = _holder.NavMesh.FromScreenMatrix;
+            
             var obstaclesHolder = WMObstaclesHolder.Instance;
             var obstacles = ScanType == ObstaclesScanType.InfiniteRadius 
                 ? obstaclesHolder.GetObstacles() 
-                : obstaclesHolder.GetObstacles(Center, ScanRadius);
+                : obstaclesHolder.GetObstacles(Center, ScanRadius, matrix);
 
             var navMesh = _holder.NavMesh;
             foreach (var obstacle in obstacles)
@@ -57,7 +61,7 @@ namespace WaystoneMason.Agents
                 var actualState = obstacle.IsActualOn(navMesh, out var currentContour, out var bounds);
 
                 if (obstacle && actualState) continue;
-                if (!WMObstaclesHolder.IsInRadius(currentContour, bounds, Center, ScanRadius)) continue;
+                if (!WMObstaclesHolder.IsInRadius(currentContour, bounds, Center, ScanRadius, matrix)) continue;
                 
                 navMesh.RemoveObstacle(currentContour);
                 _obstaclesOnNavMesh.Remove(obstacle);
@@ -66,7 +70,9 @@ namespace WaystoneMason.Agents
         
         private void OnDrawGizmosSelected()
         {
-            GizmosUtils.DrawCircle(Center, ScanRadius, GizmosUtils.Yellow, .005f, .25f);
+            var matrix = (_holder ?? PreferredHolder).GetOrCreateMatrix();
+            Matrix3x2.Invert(matrix, out var inverted);
+            GizmosUtils.DrawCircle(Center, ScanRadius, GizmosUtils.Yellow, .01f, .3f, inverted);
         }
     }
 }

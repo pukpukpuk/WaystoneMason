@@ -1,0 +1,24 @@
+using System;
+using UnityEditor;
+using WaystoneMason.Agents;
+
+namespace WaystoneMason.Editor
+{
+    [CustomEditor(typeof(WMNavMeshHolder), true)]
+    public class WMNavMeshHolderEditor : UnityEditor.Editor
+    {
+        public override void OnInspectorGUI()
+        {
+            base.OnInspectorGUI();
+            
+            var holder = (WMNavMeshHolder)target;
+
+            holder.IsIsometric = EditorGUILayout.Toggle("Is Isometric", holder.IsIsometric);
+            if (holder.IsIsometric)
+            {
+                var unclamped = EditorGUILayout.FloatField("Isometry Angle", holder.IsometryAngle);
+                holder.IsometryAngle = Math.Clamp(unclamped, 0, 90);
+            }
+        }
+    }
+}

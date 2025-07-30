@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using Clipper2Lib;
 using UnityEngine;
 using WaystoneMason.Pathfinding.Core;
 using WaystoneMason.Utils;
+using Vector2 = UnityEngine.Vector2;
 
 namespace WaystoneMason.Agents
 {
@@ -72,16 +74,16 @@ namespace WaystoneMason.Agents
         
         public IEnumerable<WMDynamicObstacle> GetObstacles() => _obstacles.Keys;
         
-        public IEnumerable<WMDynamicObstacle> GetObstacles(Vector2 center, float radius)
+        public IEnumerable<WMDynamicObstacle> GetObstacles(Vector2 center, float radius, Matrix3x2 matrix)
         {
-            var chunks = GetChunksInCircle(center, radius);
+            var chunks = GetChunksInCircle(center, radius, matrix);
             foreach (var chunkPosition in chunks)
             {
                 if (!_chunks.TryGetValue(chunkPosition, out var set)) continue;
 
                 foreach (var obstacle in set)
                 {
-                    if (IsInRadius(obstacle.CurrentContour, obstacle.Bounds, center, radius))
+                    if (IsInRadius(obstacle.CurrentContour, obstacle.Bounds, center, radius, matrix))
                     {
                         yield return obstacle;
                     }
@@ -89,14 +91,14 @@ namespace WaystoneMason.Agents
             }
         }
 
-        public static bool IsInRadius(PathD contour, Rect bounds, Vector2 center, float radius)
+        public static bool IsInRadius(PathD contour, Rect bounds, Vector2 center, float radius, Matrix3x2 matrix)
         {
-            if (!IsCircleIntersectsRect(center, radius, bounds.min, bounds.max)) return false;
+            if (!IsCircleIntersectsRect(center, radius, bounds.min, bounds.max, matrix)) return false;
             
             var circleCenter = new PointD(center.x, center.y);
             var isPointInPolygon = Clipper.PointInPolygon(circleCenter, contour);
             return isPointInPolygon is PointInPolygonResult.IsOn or PointInPolygonResult.IsInside || 
-                   IsPathIntersectsCircle(contour, center, radius);
+                   IsPathIntersectsCircumference(contour, center, radius, matrix);
         }
         
         #region Chunks Enumeration
@@ -115,17 +117,19 @@ namespace WaystoneMason.Agents
             }
         }
 
-        private static IEnumerable<Vector2Int> GetChunksInCircle(Vector2 center, float radius)
+        private static IEnumerable<Vector2Int> GetChunksInCircle(Vector2 center, float radius, Matrix3x2 matrix)
         {
-            var min = center - Vector2.one * radius;
-            var max = center + Vector2.one * radius;
+            var multipliedVector = matrix.Multiply(Vector2.one * radius);
+            
+            var min = center - multipliedVector;
+            var max = center + multipliedVector;
 
             foreach (var chunkPosition in GetChunksInRect(min, max))
             {
                 var rectMin = chunkPosition * Chunk.Size;
                 var rectMax = rectMin + Vector2.one * Chunk.Size;
 
-                if (!IsCircleIntersectsRect(center, radius, rectMin, rectMax)) continue;
+                if (!IsCircleIntersectsRect(center, radius, rectMin, rectMax, matrix)) continue;
                 yield return chunkPosition;
             }
         }
@@ -134,14 +138,21 @@ namespace WaystoneMason.Agents
 
         #region Intersection
 
-        private static bool IsCircleIntersectsRect(Vector2 circleCenter, float radius, Vector2 rectMin, Vector2 rectMax)
+        /// Checks if circle (world) intersects rect (screen)
+        private static bool IsCircleIntersectsRect(
+            Vector2 circleCenter, float radius, 
+            Vector2 rectMin, Vector2 rectMax, 
+            Matrix3x2 matrix)
         {
             var dx = Mathf.Max(rectMin.x - circleCenter.x, 0, circleCenter.x - rectMax.x);
             var dy = Mathf.Max(rectMin.y - circleCenter.y, 0, circleCenter.y - rectMax.y);
-            return dx * dx + dy * dy <= radius * radius;
+            var vectorToNearestPoint = new Vector2(dx, dy);
+            
+            return matrix.GetSquaredMagnitude(vectorToNearestPoint) <= radius * radius;
         }
 
-        private static bool IsPathIntersectsCircle(PathD path, Vector2 center, float radius)
+        /// Checks if any of segment of given path is intersecting with circumference
+        private static bool IsPathIntersectsCircumference(PathD path, Vector2 center, float radius, Matrix3x2 matrix)
         {
             for (int i = 0; i < path.Count; i++)
             {
@@ -151,21 +162,21 @@ namespace WaystoneMason.Agents
                 var aVector = new Vector2((float)a.x, (float)a.y);
                 var bVector = new Vector2((float)b.x, (float)b.y);
 
-                if (IsSegmentIntersectsCircle(aVector, bVector, center, radius)) return true;
+                if (IsSegmentIntersectsCircumference(aVector, bVector, center, radius, matrix)) return true;
             }
 
             return false;
         }
-        
-        private static bool IsSegmentIntersectsCircle(Vector2 a, Vector2 b, Vector2 center, float radius)
+
+        private static bool IsSegmentIntersectsCircumference(Vector2 a, Vector2 b, Vector2 center, float radius, Matrix3x2 matrix)
         {
             var delta = b - a;
             var ac = center - a;
 
             var t = Mathf.Clamp01(Vector2.Dot(ac, delta) / delta.sqrMagnitude);
             var closest = a + t * delta;
-
-            return (closest - center).sqrMagnitude <= radius * radius;
+            
+            return matrix.GetDistanceSquared(closest, center) <= radius * radius;
         }
 
         #endregion

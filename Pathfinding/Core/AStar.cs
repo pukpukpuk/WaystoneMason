@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using UnityEngine;
+using WaystoneMason.Utils;
+using Vector2 = UnityEngine.Vector2;
 
 namespace WaystoneMason.Pathfinding.Core
 {
@@ -13,7 +16,8 @@ namespace WaystoneMason.Pathfinding.Core
             NavMeshPolygon startPolygon, 
             NavMeshPolygon goalPolygon, 
             Vector2 startPosition,
-            Vector2 goalPosition)
+            Vector2 goalPosition,
+            Matrix3x2 matrix)
         {
             if (startPolygon == null) throw new ArgumentNullException(nameof(startPolygon));
             if (goalPolygon == null) throw new ArgumentNullException(nameof(goalPolygon));
@@ -45,7 +49,7 @@ namespace WaystoneMason.Pathfinding.Core
                     
                     var portalNearestPoint = ClosestPointOnSegment(current.Entrance, portalStart, portalEnd);
 
-                    var transitionDistance = Vector2.Distance(current.Entrance, portalNearestPoint);
+                    var transitionDistance = matrix.GetDistance(current.Entrance, portalNearestPoint);
                     var cumulativeDistance = current.CumulativeDistance + transitionDistance;
                     
                     if (!lookup.TryGetValue(neighbor, out var existing))
@@ -72,7 +76,7 @@ namespace WaystoneMason.Pathfinding.Core
 
             float DistanceToGoal(Vector2 point)
             {
-                return Vector2.Distance(point, goalPosition);
+                return matrix.GetDistance(point, goalPosition);
             }
             
             static Vector2 ClosestPointOnSegment(Vector2 point, Vector2 a, Vector2 b)

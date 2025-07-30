@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using Clipper2Lib;
 using UnityEngine;
 using WaystoneMason.Utils;
+using Vector2 = UnityEngine.Vector2;
 
 namespace WaystoneMason.Pathfinding.Core
 {
@@ -15,10 +17,16 @@ namespace WaystoneMason.Pathfinding.Core
         private readonly HashSet<Chunk> _dirtyChunks = new();
 
         public float AgentRadius { get; }
+        public Matrix3x2 FromScreenMatrix { get; }
 
-        public NavMesh(float agentRadius)
+        public NavMesh(float agentRadius) : this(agentRadius, Matrix3x2.Identity)
         {
-            AgentRadius = agentRadius; 
+        }
+        
+        public NavMesh(float agentRadius, Matrix3x2 fromScreenMatrix)
+        {
+            AgentRadius = agentRadius;
+            FromScreenMatrix = fromScreenMatrix;
         }
         
         public bool TryComputePath(Vector2 start, Vector2 goal, out List<Vector2> path)
@@ -29,7 +37,7 @@ namespace WaystoneMason.Pathfinding.Core
             var goalPolygon = FindPolygonContainingPoint(goal);
             if (startPolygon == null || goalPolygon == null) return false;
 
-            var polygonPath = AStar.ComputePathBetweenPolygons(startPolygon, goalPolygon, start, goal);
+            var polygonPath = AStar.ComputePathBetweenPolygons(startPolygon, goalPolygon, start, goal, FromScreenMatrix);
             if (polygonPath == null) return false;
 
             var portals = AStar.GetPortals(polygonPath, start, goal);
@@ -128,52 +136,17 @@ namespace WaystoneMason.Pathfinding.Core
         }
         
         #region Gizmos
-
-#if UNITY_EDITOR
-
-        private readonly Dictionary<Vector2Int, Mesh> _cachedMeshes = new();
         
         public void DrawGizmos()
         {
-            var alreadyDrawn = new HashSet<NavMeshPolygon>();
-            
-            foreach (var (chunkPosition, chunk) in _chunks)
+            foreach (var (_, chunk) in _chunks)
             {
-                var vertices = chunk.Polygons
-                    .SelectMany(polygon => polygon.Vertices)
-                    .Select(v => (Vector3)v)
-                    .ToArray();
-                
-                var triangles = new int[vertices.Length];
-                for (int i = 0; i < triangles.Length; i++) triangles[i] = i;
-
-                if (!_cachedMeshes.TryGetValue(chunkPosition, out var mesh))
-                {
-                    _cachedMeshes[chunkPosition] = mesh = new Mesh();
-                }
-                
-                mesh.Clear();
-                mesh.SetVertices(vertices);
-                mesh.SetTriangles(triangles, 0);
-                mesh.RecalculateNormals();
-
-                GizmosUtils.DrawMesh(mesh, GizmosUtils.Magenta, .05f, .65f);
-                
                 foreach (var polygon in chunk.Polygons)
                 {
-                    if (!alreadyDrawn.Add(polygon)) continue;
-                    
-                    Gizmos.color = GizmosUtils.Cyan;
-                    foreach (var neighbor in polygon.Neighbors)
-                    {
-                        Gizmos.DrawLine(polygon.Centroid, neighbor.Centroid);
-                    }
+                    GizmosUtils.DrawPolygon(polygon.Vertices, GizmosUtils.Magenta, .05f, .65f);
                 }
             }
         }
-#else
-        public void DrawGizmos() { }
-#endif
         
         #endregion
     }

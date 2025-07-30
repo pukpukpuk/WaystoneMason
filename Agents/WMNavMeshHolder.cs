@@ -1,6 +1,8 @@
 using System;
+using System.Numerics;
 using UnityEngine;
 using WaystoneMason.Pathfinding.Core;
+using WaystoneMason.Utils;
 
 namespace WaystoneMason.Agents
 {
@@ -8,16 +10,24 @@ namespace WaystoneMason.Agents
     {
         public float AgentRadius = .25f;
         public float RebuildCallPeriod = .5f;
+
+        [HideInInspector] public bool IsIsometric;
+        [HideInInspector] public float IsometryAngle = 30f;
         
         private float _nextRebuildAt;
 
         public event Action OnBeforeRebuild;
         
         public NavMesh NavMesh { get; private set; }
+
+        public Matrix3x2 GetOrCreateMatrix()
+        {
+            return NavMesh?.FromScreenMatrix ?? CreateMatrix();
+        }
         
         private void Awake()
         {
-            NavMesh = new NavMesh(AgentRadius);
+            NavMesh = new NavMesh(AgentRadius, CreateMatrix());
             CreateEmptyChunks();
         }
 
@@ -55,6 +65,13 @@ namespace WaystoneMason.Agents
             }
             
             NavMesh.Rebuild();
+        }
+
+        private Matrix3x2 CreateMatrix()
+        {
+            return IsIsometric 
+                ? MatrixUtils.CreateMatrixForIsometry(IsometryAngle)
+                : Matrix3x2.Identity;
         }
     }
 }
