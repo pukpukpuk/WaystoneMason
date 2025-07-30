@@ -38,7 +38,11 @@ The project provides several components to set up basic pathfinding infrastructu
 ### WMNavMeshHolder
 On game start, it creates a NavMesh instance with a given agent radius and periodically rebuilds it.
 
-Has an event `OnBeforeRebuild`, which is called before each rebuild. Useful for manually scanning obstacles.
+For isometric games, set `IsIsometric` to `true` and specify the desired angle in the `IsometryAngle` field,  
+otherwise distances will be calculated incorrectly.
+
+Has `OnBeforeRebuild` and `OnAfterRebuild` events, called before and after each rebuild.  
+Useful for manual obstacle scanning.
 
 ### WMAgent
 Has a method for setting a movement target – `SetGoal(Vector2)`.  
@@ -74,7 +78,8 @@ drop down to the core library level.
 
 To create a navmesh, you only need to specify the agent collider radius.  
 Note that **the radius cannot be changed after the object is created**.
-
+In addition to the radius, you can optionally specify a matrix for converting screen coordinates to world coordinates.  
+Currently, only distance calculations depend on this.
 ```cs
 var agentRadius = 0.25f;
 var navMesh = new NavMesh(agentRadius);
