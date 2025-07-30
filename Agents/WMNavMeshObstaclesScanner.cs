@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using UnityEditor;
 using UnityEngine;
 using WaystoneMason.Utils;
 using Vector2 = UnityEngine.Vector2;
@@ -16,44 +15,50 @@ namespace WaystoneMason.Agents
         
         public WMNavMeshHolder PreferredHolder;
 
-        private WMNavMeshHolder _holder;
-        
+        public event Action OnAfterRebuildWithAnyChanges;
+
         private readonly HashSet<WMDynamicObstacle> _obstaclesOnNavMesh = new();
-        
+        private bool _navMeshIsChanged;
+
         public Vector2 Center => transform.position;
-        
+        public WMNavMeshHolder Holder { get; private set; }
+
         private void OnValidate()
         {
-            PreferredHolder ??= GetComponent<WMNavMeshHolder>() ?? GetComponent<WMAgent>()?.Holder;
+            PreferredHolder ??= GetComponent<WMNavMeshHolder>();
         }
         
         private void OnEnable()
         {
-            _holder ??= PreferredHolder;
-            _holder.OnBeforeRebuild += HandleOnBeforeRebuild;
+            Holder ??= PreferredHolder;
+            Holder.OnBeforeRebuild += HandleOnBeforeRebuild;
+            Holder.OnAfterRebuild += HandleOnAfterRebuild;
         }
         
         private void OnDisable()
         {
-            _holder.OnBeforeRebuild -= HandleOnBeforeRebuild;
+            Holder.OnBeforeRebuild -= HandleOnBeforeRebuild;
         }
 
         private void HandleOnBeforeRebuild()
         {
             if (ScanType == ObstaclesScanType.Disabled) return;
             
-            var matrix = _holder.NavMesh.FromScreenMatrix;
+            var matrix = Holder.NavMesh.FromScreenMatrix;
             
             var obstaclesHolder = WMObstaclesHolder.Instance;
             var obstacles = ScanType == ObstaclesScanType.InfiniteRadius 
                 ? obstaclesHolder.GetObstacles() 
                 : obstaclesHolder.GetObstacles(Center, ScanRadius, matrix);
 
-            var navMesh = _holder.NavMesh;
+            var anyChange = false;
+            
+            var navMesh = Holder.NavMesh;
             foreach (var obstacle in obstacles)
             {
-                obstacle.Affect(navMesh);
+                var changed = obstacle.Affect(navMesh);
                 _obstaclesOnNavMesh.Add(obstacle);
+                anyChange |= changed;
             }
 
             foreach (var obstacle in _obstaclesOnNavMesh.ToList())
@@ -65,12 +70,23 @@ namespace WaystoneMason.Agents
                 
                 navMesh.RemoveObstacle(currentContour);
                 _obstaclesOnNavMesh.Remove(obstacle);
+                anyChange = true;
             }
+            
+            if (anyChange) _navMeshIsChanged = true;
+        }
+
+        private void HandleOnAfterRebuild()
+        {
+            if (!_navMeshIsChanged) return;
+            _navMeshIsChanged = false;
+            
+            OnAfterRebuildWithAnyChanges?.Invoke();
         }
         
         private void OnDrawGizmosSelected()
         {
-            var matrix = (_holder ?? PreferredHolder).GetOrCreateMatrix();
+            var matrix = (Holder ?? PreferredHolder).GetOrCreateMatrix();
             Matrix3x2.Invert(matrix, out var inverted);
             GizmosUtils.DrawCircle(Center, ScanRadius, GizmosUtils.Yellow, .01f, .3f, inverted);
         }

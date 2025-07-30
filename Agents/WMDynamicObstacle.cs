@@ -21,11 +21,16 @@ namespace WaystoneMason.Agents
         public PathD CurrentContour { get; private set; }
         public Rect Bounds { get; private set; }
         
-        public void Affect(NavMesh navMesh)
+        /// <summary>
+        /// Updates its state on the specified NavMesh
+        /// </summary>
+        /// <param name="navMesh">The NavMesh to update</param>
+        /// <returns>True if a change occurred</returns>
+        public bool Affect(NavMesh navMesh)
         {
             TryConstructContour();
 
-            if (IsActualOn(navMesh, out var contourOnNavMesh, out _)) return;
+            if (IsActualOn(navMesh, out var contourOnNavMesh, out _)) return false;
 
             if (contourOnNavMesh != null && navMesh.ContainsObstacle(contourOnNavMesh))
             {
@@ -34,8 +39,16 @@ namespace WaystoneMason.Agents
             navMesh.AddObstacle(CurrentContour);
             
             _affectData[navMesh] = (_lastChangeId, CurrentContour, Bounds);
+            return true;
         }
 
+        /// <summary>
+        /// Returns the validity status for the specified NavMesh
+        /// </summary>
+        /// <param name="navMesh">The target NavMesh</param>
+        /// <param name="currentContour">The current obstacle contour on the NavMesh</param>
+        /// <param name="bounds">The bounds of the current contour on the NavMesh</param>
+        /// <returns>True if the current obstacle position is valid</returns>
         public bool IsActualOn(NavMesh navMesh, out PathD currentContour, out Rect bounds)
         {
             var contains = _affectData.TryGetValue(navMesh, out var affectData);

@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace WaystoneMason.Pathfinding.Generation
 {
+    /// <summary>
+    /// A structure for checking the collinearity of vectors
+    /// </summary>
     public readonly struct Line : IEquatable<Line>
     {
         private readonly float A;

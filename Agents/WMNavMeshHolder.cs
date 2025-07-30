@@ -17,6 +17,7 @@ namespace WaystoneMason.Agents
         private float _nextRebuildAt;
 
         public event Action OnBeforeRebuild;
+        public event Action OnAfterRebuild;
         
         public NavMesh NavMesh { get; private set; }
 
@@ -48,6 +49,7 @@ namespace WaystoneMason.Agents
             
             OnBeforeRebuild?.Invoke();
             NavMesh.Rebuild();
+            OnAfterRebuild?.Invoke();
         }
         
         private void OnDrawGizmosSelected()

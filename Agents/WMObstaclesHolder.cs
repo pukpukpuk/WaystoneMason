@@ -74,6 +74,12 @@ namespace WaystoneMason.Agents
         
         public IEnumerable<WMDynamicObstacle> GetObstacles() => _obstacles.Keys;
         
+        /// <summary>
+        /// Returns all obstacles intersecting a circle with the given parameters
+        /// </summary>
+        /// <param name="center">Center of the circle</param>
+        /// <param name="radius">Radius of the circle</param>
+        /// <param name="matrix">Matrix for transforming from screen space to world space</param>
         public IEnumerable<WMDynamicObstacle> GetObstacles(Vector2 center, float radius, Matrix3x2 matrix)
         {
             var chunks = GetChunksInCircle(center, radius, matrix);
@@ -91,6 +97,14 @@ namespace WaystoneMason.Agents
             }
         }
 
+        /// <summary>
+        /// Checks for intersection between the contour and a circle with the given parameters
+        /// </summary>
+        /// <param name="contour">The contour</param>
+        /// <param name="bounds">The bounds of the contour</param>
+        /// <param name="center">Center of the circle</param>
+        /// <param name="radius">Radius of the circle</param>
+        /// <param name="matrix">Matrix for transforming from screen space to world space</param>
         public static bool IsInRadius(PathD contour, Rect bounds, Vector2 center, float radius, Matrix3x2 matrix)
         {
             if (!IsCircleIntersectsRect(center, radius, bounds.min, bounds.max, matrix)) return false;
@@ -102,7 +116,8 @@ namespace WaystoneMason.Agents
         }
         
         #region Chunks Enumeration
-
+        
+        /// <returns>Returns all chunks intersecting with the specified rectangle</returns>
         public static IEnumerable<Vector2Int> GetChunksInRect(Vector2 min, Vector2 max)
         {
             var intMin = Vector2Int.FloorToInt(min / Chunk.Size);

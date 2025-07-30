@@ -9,14 +9,17 @@ namespace WaystoneMason.Agents
     {
         public float Speed = 3;
         
-        public WMNavMeshHolder Holder;
-        
+        public WMNavMeshObstaclesScanner PreferredScanner;
+
+        private WMNavMeshObstaclesScanner _scanner;
         private int _targetedCornerIndex;
         private List<Vector2> _path;
-    
+        
+        public bool IsFollowingPath => _path != null;
+        
         public void SetGoal(Vector2 goal)
         {
-            Holder.NavMesh.TryComputePath(transform.position, goal, out _path);
+            PreferredScanner.Holder.NavMesh.TryComputePath(transform.position, goal, out _path);
             _targetedCornerIndex = 0;
         }
     
@@ -27,12 +30,25 @@ namespace WaystoneMason.Agents
 
         private void OnValidate()
         {
-            Holder ??= GetComponent<WMNavMeshHolder>();
+            PreferredScanner ??= GetComponent<WMNavMeshObstaclesScanner>();
         }
+        
+        private void OnEnable()
+        {
+            _scanner ??= PreferredScanner;
+            _scanner.OnAfterRebuildWithAnyChanges += HandleOnAfterRebuildWithAnyChanges;
+        }
+        
+        private void OnDisable()
+        {
+            _scanner.OnAfterRebuildWithAnyChanges -= HandleOnAfterRebuildWithAnyChanges;
+        }
+
+        #region Path Following
 
         private void MoveThroughPath()
         {
-            if (_path == null) return;
+            if (!IsFollowingPath) return;
         
             var currentCorner = (Vector3)_path[_targetedCornerIndex];
 
@@ -55,6 +71,15 @@ namespace WaystoneMason.Agents
 
             transform.position = nextPosition;
         }
+        
+        private void HandleOnAfterRebuildWithAnyChanges()
+        {
+            if (!IsFollowingPath) return;
+            
+            SetGoal(_path[^1]);
+        }
+        
+        #endregion
     
         #region Gizmos
     
@@ -65,7 +90,7 @@ namespace WaystoneMason.Agents
 
         private void DrawPath()
         {
-            if (_path == null) return;
+            if (!IsFollowingPath) return;
 
             var corners = new List<Vector3> { transform.position };
             for (int i = _targetedCornerIndex; i < _path.Count; i++) corners.Add(_path[i]);

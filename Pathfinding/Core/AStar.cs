@@ -12,6 +12,15 @@ namespace WaystoneMason.Pathfinding.Core
         private static readonly Comparer<Node> Comparer =
             Comparer<Node>.Create((a, b) => a.DistancesSum.CompareTo(b.DistancesSum));
         
+        /// <summary>
+        /// Builds a path between two polygons
+        /// </summary>
+        /// <param name="startPolygon">The starting polygon</param>
+        /// <param name="goalPolygon">The target polygon</param>
+        /// <param name="startPosition">The starting position</param>
+        /// <param name="goalPosition">The target position</param>
+        /// <param name="matrix">Matrix for transforming from screen space to world space</param>
+        /// <exception cref="ArgumentNullException">Thrown if either polygon is null</exception>
         public static List<NavMeshPolygon> ComputePathBetweenPolygons(
             NavMeshPolygon startPolygon, 
             NavMeshPolygon goalPolygon, 
@@ -88,6 +97,9 @@ namespace WaystoneMason.Pathfinding.Core
             }
         }
 
+        /// <summary>
+        /// Constructs a set of portals from the given polygon path, including the start and end points of the route
+        /// </summary>
         public static Portals GetPortals(List<NavMeshPolygon> polygonPath, Vector2 start, Vector2 goal)
         {
             var polygonPortals = GetPortals(polygonPath);
@@ -100,6 +112,9 @@ namespace WaystoneMason.Pathfinding.Core
             return portals;
         }
         
+        /// <summary>
+        /// Constructs a set of portals from the given polygon path
+        /// </summary>
         public static Portals GetPortals(List<NavMeshPolygon> polygonPath)
         {
             var portals = new Portals(polygonPath.Count);
@@ -123,6 +138,9 @@ namespace WaystoneMason.Pathfinding.Core
             return portals;
         }
         
+        /// <summary>
+        /// Finds the shortest path through the given portals
+        /// </summary>
         public static List<Vector2> StringPull(Portals portals)
         {
             var (left, right) = portals;
