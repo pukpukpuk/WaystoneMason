@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using UnityEngine;
 using WaystoneMason.Utils;
+using Vector2 = UnityEngine.Vector2;
+using Vector3 = UnityEngine.Vector3;
 
 namespace WaystoneMason.Agents
 {
@@ -53,11 +56,11 @@ namespace WaystoneMason.Agents
             var currentCorner = (Vector3)_path[_targetedCornerIndex];
 
             var currentPosition = transform.position;
-            var delta = currentCorner - currentPosition;
-            var vector = delta.normalized;
-
+            var delta = (Vector3)PreferredScanner.Holder.NavMesh.FromScreenMatrix.Multiply(currentCorner - currentPosition);
+            var vector = PreferredScanner.Holder.NavMesh.ToScreenMatrix.Multiply(delta.normalized);
+            
             var moveMagnitude = Time.deltaTime * Speed;
-            var nextPosition = currentPosition + vector * moveMagnitude;
+            var nextPosition = currentPosition + (Vector3)vector * moveMagnitude;
 
             if (Mathf.Pow(moveMagnitude, 2) >= delta.sqrMagnitude)
             {

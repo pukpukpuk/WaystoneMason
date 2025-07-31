@@ -12,7 +12,7 @@ namespace WaystoneMason.Agents
         public float RebuildCallPeriod = .5f;
 
         [HideInInspector] public bool IsIsometric;
-        [HideInInspector] public float IsometryAngle = 30f;
+        [HideInInspector] public float IsometryYScale = 0.5f;
         
         private float _nextRebuildAt;
 
@@ -72,7 +72,7 @@ namespace WaystoneMason.Agents
         private Matrix3x2 CreateMatrix()
         {
             return IsIsometric 
-                ? MatrixUtils.CreateMatrixForIsometry(IsometryAngle)
+                ? MatrixUtils.CreateMatrixForIsometry(IsometryYScale)
                 : Matrix3x2.Identity;
         }
     }

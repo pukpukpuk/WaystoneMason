@@ -16,8 +16,8 @@ namespace WaystoneMason.Editor
             holder.IsIsometric = EditorGUILayout.Toggle("Is Isometric", holder.IsIsometric);
             if (holder.IsIsometric)
             {
-                var unclamped = EditorGUILayout.FloatField("Isometry Angle", holder.IsometryAngle);
-                holder.IsometryAngle = Math.Clamp(unclamped, 0, 90);
+                var unclamped = EditorGUILayout.FloatField("Isometry Y Scale", holder.IsometryYScale);
+                holder.IsometryYScale = Math.Clamp(unclamped, 0, 90);
             }
         }
     }

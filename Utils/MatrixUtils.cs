@@ -7,20 +7,10 @@ namespace WaystoneMason.Utils
     public static class MatrixUtils
     {
         /// Creates a matrix for converting screen positions to world
-        public static Matrix3x2 CreateMatrixForIsometry(float visualDegrees) 
+        public static Matrix3x2 CreateMatrixForIsometry(float yScale)
         {
-            var radians = visualDegrees * Mathf.Deg2Rad;
-            var sin = Mathf.Sin(radians);
-            var cos = Mathf.Cos(radians);
-            
-            var matrix = new Matrix3x2
-            {
-                M11 = 1 / (2f * cos),
-                M21 = 1 / (2f * sin),
-                M12 = 1 / (-2f * cos),
-                M22 = 1 / (2f * sin)
-            };
-
+            var matrix = Matrix3x2.Identity;
+            matrix.M22 = 1f / yScale;
             return matrix;
         }
         

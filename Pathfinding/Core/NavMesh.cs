@@ -18,6 +18,7 @@ namespace WaystoneMason.Pathfinding.Core
 
         public float AgentRadius { get; }
         public Matrix3x2 FromScreenMatrix { get; }
+        public Matrix3x2 ToScreenMatrix { get; }
 
         public NavMesh(float agentRadius) : this(agentRadius, Matrix3x2.Identity)
         {
@@ -27,6 +28,9 @@ namespace WaystoneMason.Pathfinding.Core
         {
             AgentRadius = agentRadius;
             FromScreenMatrix = fromScreenMatrix;
+
+            Matrix3x2.Invert(FromScreenMatrix, out var inverted);
+            ToScreenMatrix = inverted;
         }
         
         public bool TryComputePath(Vector2 start, Vector2 goal, out List<Vector2> path)
