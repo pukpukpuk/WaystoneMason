@@ -86,7 +86,7 @@ namespace WaystoneMason.Pathfinding.Core
             var eraser = new PathsD();
             foreach (var paths in _obstacles) eraser.AddRange(paths);
             
-            eraser = Clipper.Union(eraser, FillRule.EvenOdd);
+            eraser = Clipper.Union(eraser, FillRule.NonZero);
 
             var freeSpacePath = Difference(_baseContour, eraser);
             return freeSpacePath;
