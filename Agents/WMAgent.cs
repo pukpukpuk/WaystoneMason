@@ -1,10 +1,13 @@
+#region
+
 using System;
 using System.Collections.Generic;
-using System.Numerics;
 using UnityEngine;
 using WaystoneMason.Utils;
 using Vector2 = UnityEngine.Vector2;
 using Vector3 = UnityEngine.Vector3;
+
+#endregion
 
 namespace WaystoneMason.Agents
 {
@@ -12,9 +15,9 @@ namespace WaystoneMason.Agents
     {
         public float Speed = 3;
         
-        public WMNavMeshObstaclesScanner PreferredScanner;
+        public WMNavMeshHolder PreferredHolder;
 
-        private WMNavMeshObstaclesScanner _scanner;
+        private WMNavMeshHolder _holder;
         private int _targetedCornerIndex;
         private List<Vector2> _path;
         
@@ -22,8 +25,8 @@ namespace WaystoneMason.Agents
         
         public void SetGoal(Vector2 goal)
         {
-            PreferredScanner.Holder.NavMesh.TryComputePath(transform.position, goal, out _path);
             _targetedCornerIndex = 0;
+            if (!_holder.NavMesh.TryComputePath(transform.position, goal, out _path)) _path = null;
         }
     
         protected virtual void Update()
@@ -33,18 +36,18 @@ namespace WaystoneMason.Agents
 
         private void OnValidate()
         {
-            PreferredScanner ??= GetComponent<WMNavMeshObstaclesScanner>();
+            _holder ??= GetComponent<WMNavMeshHolder>();
         }
         
         private void OnEnable()
         {
-            _scanner ??= PreferredScanner;
-            _scanner.OnAfterRebuildWithAnyChanges += HandleOnAfterRebuildWithAnyChanges;
+            _holder ??= PreferredHolder;
+            _holder.OnAfterRebuildWithAnyChanges += HandleOnAfterRebuildWithAnyChanges;
         }
         
         private void OnDisable()
         {
-            _scanner.OnAfterRebuildWithAnyChanges -= HandleOnAfterRebuildWithAnyChanges;
+            if (_holder) _holder.OnAfterRebuildWithAnyChanges -= HandleOnAfterRebuildWithAnyChanges;
         }
 
         #region Path Following
@@ -52,12 +55,13 @@ namespace WaystoneMason.Agents
         private void MoveThroughPath()
         {
             if (!IsFollowingPath) return;
-        
-            var currentCorner = (Vector3)_path[_targetedCornerIndex];
 
             var currentPosition = transform.position;
-            var delta = (Vector3)PreferredScanner.Holder.NavMesh.FromScreenMatrix.Multiply(currentCorner - currentPosition);
-            var vector = PreferredScanner.Holder.NavMesh.ToScreenMatrix.Multiply(delta.normalized);
+            var currentCorner = (Vector3)_path[_targetedCornerIndex];
+
+            var matrix = _holder.NavMesh.FromScreenScaleMatrix;
+            var delta = (currentCorner - currentPosition) * matrix;
+            var vector = delta.normalized / matrix;
             
             var moveMagnitude = Time.deltaTime * Speed;
             var nextPosition = currentPosition + (Vector3)vector * moveMagnitude;

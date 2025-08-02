@@ -1,7 +1,11 @@
+#region
+
 using NUnit.Framework;
 using UnityEngine;
 using WaystoneMason.Pathfinding;
 using WaystoneMason.Pathfinding.Core;
+
+#endregion
 
 namespace WaystoneMason.Tests
 {

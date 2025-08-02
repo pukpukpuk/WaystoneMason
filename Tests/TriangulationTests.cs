@@ -1,9 +1,13 @@
+#region
+
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
 using WaystoneMason.Pathfinding;
 using WaystoneMason.Pathfinding.Generation;
+
+#endregion
 
 namespace WaystoneMason.Tests
 {

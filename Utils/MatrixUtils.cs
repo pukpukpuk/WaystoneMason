@@ -1,41 +1,30 @@
-using System.Numerics;
+#region
+
 using UnityEngine;
 using Vector2 = UnityEngine.Vector2;
+
+#endregion
 
 namespace WaystoneMason.Utils
 {
     public static class MatrixUtils
     {
-        /// Creates a matrix for converting screen positions to world
-        public static Matrix3x2 CreateMatrixForIsometry(float yScale)
+        public static float GetSquaredMagnitude(Vector2 matrix, Vector2 vector)
         {
-            var matrix = Matrix3x2.Identity;
-            matrix.M22 = 1f / yScale;
-            return matrix;
+            var x = vector.x * matrix.x;
+            var y = vector.y * matrix.y;
+            return x*x + y*y;
         }
         
-        public static float GetSquaredMagnitude(this Matrix3x2 matrix, Vector2 vector)
-        {
-            var multiplied = matrix.Multiply(vector);
-            return multiplied.sqrMagnitude;
-        }
-        
-        public static float GetDistanceSquared(this Matrix3x2 matrix, Vector2 a, Vector2 b)
+        public static float GetDistanceSquared(Vector2 matrix, Vector2 a, Vector2 b)
         {
             var vector = b - a;
-            return matrix.GetSquaredMagnitude(vector);
+            return GetSquaredMagnitude(matrix, vector);
         }
 
-        public static float GetDistance(this Matrix3x2 matrix, Vector2 a, Vector2 b)
+        public static float GetDistance(Vector2 matrix, Vector2 a, Vector2 b)
         {
-            return Mathf.Sqrt(matrix.GetDistanceSquared(a, b));
-        }
-        
-        public static Vector2 Multiply(this Matrix3x2 m, Vector2 v)
-        {
-            var x = m.M11 * v.x + m.M21 * v.y + m.M31;
-            var y = m.M12 * v.x + m.M22 * v.y + m.M32;
-            return new Vector2(x, y);
+            return Mathf.Sqrt(GetDistanceSquared(matrix, a, b));
         }
     }
 }

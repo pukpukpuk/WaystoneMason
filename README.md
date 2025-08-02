@@ -2,11 +2,11 @@
 
 [Документация на русском](README-RU.md)
 
-[**Waystone Mason**](#semantics-of-the-name) is a library for 2D pathfinding using navmeshes.
+[**Waystone Mason**](#semantics-of-the-name) is a library for 2D pathfinding using NavMeshes.
 
 What makes this project different from existing solutions?
-- Navmeshes are not singletons, allowing agents to have personal navmeshes.
-- You can manually control how obstacle updates affect the navmesh,
+- Navmeshes are not singletons, allowing agents to have personal NavMeshes.
+- You can manually control how obstacle updates affect the NavMesh,
   which can be used, for example, to simulate agents’ memory.
 
 ---
@@ -38,19 +38,24 @@ The project provides several components to set up basic pathfinding infrastructu
 ### WMNavMeshHolder
 On game start, it creates a NavMesh instance with a given agent radius and periodically rebuilds it.
 
-For isometric games, set `IsIsometric` to `true` and specify the desired angle in the `IsometryAngle` field,  
+For isometric games, set `IsIsometric` to `true` and specify the appropriate vertical coordinate scale in the `IsometryYScale` field, 
 otherwise distances will be calculated incorrectly.
 
-Has `OnBeforeRebuild` and `OnAfterRebuild` events, called before and after each rebuild.  
-Useful for manual obstacle scanning.
+It has the following events:
+- `OnBeforeRebuild` – called before each rebuild.
+- `OnAfterRebuildWithAnyChanges` – called after the rebuild if at least one chunk was changed.
 
 ### WMAgent
 Has a method for setting a movement target – `SetGoal(Vector2)`.  
 When called, the agent computes a path to the goal using the NavMesh from the specified `WMNavMeshHolder` and starts following it.
 
+### WMNavMeshObstacle
+Same as `WMNavMeshDynamicObstacle`, but added to the NavMesh permanently — once and forever.  
+This component should be used for fully static obstacles.
+
 ### WMDynamicObstacle
-Based on the specified collider, it builds the obstacle's contour. It doesn't affect navmeshes on its own —
-you need to call its `Affect(NavMesh)` method to update its state on the given navmesh.
+Generates an obstacle contour based on the specified collider.  
+By itself, it does not affect the NavMesh — to do so, you must call its `Affect(NavMesh)` method to update the obstacle state on the given NavMesh.
 
 ### WMObstaclesHolder
 Container for all obstacles in the scene. Allows efficiently querying obstacles within a radius.
@@ -67,18 +72,21 @@ For obstacles that have changed state (e.g. moved or had their contour shape mod
 - and the current contour — the one matching the obstacle’s current shape or position.
 
 If only the previous contour falls within the scan radius, the scanner assumes the obstacle has either disappeared or moved,  
-and removes it from the navmesh.
+and removes it from the NavMesh. If the current contour is within range, the scanner adds it to the NavMesh and also removes the outdated one.
 
-If the current contour is within range, the scanner adds it to the navmesh and also removes the outdated one.
+To create a custom scanner, you need to inherit from the `ObstaclesScannerBase` class and implement three methods:
+1. `GetSeenObstacles()` – a method for retrieving the obstacles visible at the time of the call.
+2. `IsVisible()` – a method for checking whether contours are visible.
+3. `GetChunkPregenerationRect()` – a method for obtaining a rectangle that covers the entire visible area of the scanner.
 
 ## Manual Control
 
-If the built-in components are not enough, and you need finer control over navmesh content,  
+If the built-in components are not enough, and you need finer control over NavMesh content,  
 drop down to the core library level.
 
-To create a navmesh, you only need to specify the agent collider radius.  
+To create a NavMesh, you only need to specify the agent collider radius.  
 Note that **the radius cannot be changed after the object is created**.
-In addition to the radius, you can optionally specify a matrix for converting screen coordinates to world coordinates.  
+In addition to the radius, you can optionally specify a transformation matrix for converting screen coordinates to world coordinates.
 Currently, only distance calculations depend on this.
 ```cs
 var agentRadius = 0.25f;
@@ -101,9 +109,9 @@ navMesh.AddObstacle(translated);
 navMesh.Rebuild();
 ```
 
-If the obstacle is not supposed to change or disappear during game, it can be added to the navmesh permanently.
-During navmesh rebuilding, permanent obstacles are processed more cheaply than dynamic ones,
-but they cannot be removed from the navmesh later.
+If the obstacle is not supposed to change or disappear during game, it can be added to the NavMesh permanently.
+During NavMesh rebuilding, permanent obstacles are processed more cheaply than dynamic ones,
+but they cannot be removed from the NavMesh later.
 
 ```cs
 navMesh.AddObstacle(triangleObstacle, true);

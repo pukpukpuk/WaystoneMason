@@ -1,94 +1,49 @@
-using System;
+#region
+
 using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
+using Clipper2Lib;
 using UnityEngine;
 using WaystoneMason.Utils;
 using Vector2 = UnityEngine.Vector2;
 
+#endregion
+
 namespace WaystoneMason.Agents
 {
-    public class WMNavMeshObstaclesScanner : MonoBehaviour
+    public class WMNavMeshObstaclesScanner : ObstaclesScannerBase
     {
-        [HideInInspector] public ObstaclesScanType ScanType;
-        [HideInInspector] public float ScanRadius;
-        
-        public WMNavMeshHolder PreferredHolder;
+        public ObstaclesScanType ScanType;
+        public float ScanRadius;
 
-        public event Action OnAfterRebuildWithAnyChanges;
+        private Vector2 Matrix => (Holder ?? PreferredHolder).GetOrCreateMatrix();
+        private Vector2 Center => transform.position;
 
-        private readonly HashSet<WMDynamicObstacle> _obstaclesOnNavMesh = new();
-        private bool _navMeshIsChanged;
-
-        public Vector2 Center => transform.position;
-        public WMNavMeshHolder Holder { get; private set; }
-
-        private void OnValidate()
+        protected override IEnumerable<WMNavMeshObstacle> GetSeenObstacles()
         {
-            PreferredHolder ??= GetComponent<WMNavMeshHolder>();
-        }
-        
-        private void OnEnable()
-        {
-            Holder ??= PreferredHolder;
-            Holder.OnBeforeRebuild += HandleOnBeforeRebuild;
-            Holder.OnAfterRebuild += HandleOnAfterRebuild;
-        }
-        
-        private void OnDisable()
-        {
-            Holder.OnBeforeRebuild -= HandleOnBeforeRebuild;
-        }
-
-        private void HandleOnBeforeRebuild()
-        {
-            if (ScanType == ObstaclesScanType.Disabled) return;
-            
-            var matrix = Holder.NavMesh.FromScreenMatrix;
-            
-            var obstaclesHolder = WMObstaclesHolder.Instance;
             var obstacles = ScanType == ObstaclesScanType.InfiniteRadius 
-                ? obstaclesHolder.GetObstacles() 
-                : obstaclesHolder.GetObstacles(Center, ScanRadius, matrix);
-
-            var anyChange = false;
-            
-            var navMesh = Holder.NavMesh;
-            foreach (var obstacle in obstacles)
-            {
-                var changed = obstacle.Affect(navMesh);
-                _obstaclesOnNavMesh.Add(obstacle);
-                anyChange |= changed;
-            }
-
-            foreach (var obstacle in _obstaclesOnNavMesh.ToList())
-            {
-                var actualState = obstacle.IsActualOn(navMesh, out var currentContour, out var bounds);
-
-                if (obstacle && actualState) continue;
-                if (!WMObstaclesHolder.IsInRadius(currentContour, bounds, Center, ScanRadius, matrix)) continue;
-                
-                navMesh.RemoveObstacle(currentContour);
-                _obstaclesOnNavMesh.Remove(obstacle);
-                anyChange = true;
-            }
-            
-            if (anyChange) _navMeshIsChanged = true;
+                ? WMObstaclesHolder.Instance.GetObstacles() 
+                : WMObstaclesHolder.Instance.GetObstacles(Center, ScanRadius, Matrix);
+            return obstacles;
         }
 
-        private void HandleOnAfterRebuild()
+        protected override bool IsVisible(PathD contour, Rect bounds)
         {
-            if (!_navMeshIsChanged) return;
-            _navMeshIsChanged = false;
-            
-            OnAfterRebuildWithAnyChanges?.Invoke();
+            return WMObstaclesHolder.IsInRadius(contour, bounds, Center, ScanRadius, Matrix);
         }
-        
+
+        protected override Rect GetChunkPregenerationRect()
+        {
+            var size = ScanRadius * 2 * Matrix;
+            return new Rect(Center - size / 2f, size);
+        }
+
         private void OnDrawGizmosSelected()
         {
-            var matrix = (Holder ?? PreferredHolder).GetOrCreateMatrix();
-            Matrix3x2.Invert(matrix, out var inverted);
-            GizmosUtils.DrawCircle(Center, ScanRadius, GizmosUtils.Yellow, .01f, .3f, inverted);
+            var matrix = Matrix;
+            var inverted = new Vector2(1 / matrix.x, 1 / matrix.y);
+
+            var vertices = GizmosUtils.GetCircleContour(Center, ScanRadius, inverted);
+            GizmosUtils.DrawPolygon(vertices, GizmosUtils.Yellow, .04f, .5f);
         }
     }
 }

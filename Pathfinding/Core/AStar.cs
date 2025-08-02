@@ -1,9 +1,12 @@
+#region
+
 using System;
 using System.Collections.Generic;
-using System.Numerics;
 using UnityEngine;
 using WaystoneMason.Utils;
 using Vector2 = UnityEngine.Vector2;
+
+#endregion
 
 namespace WaystoneMason.Pathfinding.Core
 {
@@ -26,7 +29,7 @@ namespace WaystoneMason.Pathfinding.Core
             NavMeshPolygon goalPolygon, 
             Vector2 startPosition,
             Vector2 goalPosition,
-            Matrix3x2 matrix)
+            Vector2 matrix)
         {
             if (startPolygon == null) throw new ArgumentNullException(nameof(startPolygon));
             if (goalPolygon == null) throw new ArgumentNullException(nameof(goalPolygon));
@@ -56,9 +59,9 @@ namespace WaystoneMason.Pathfinding.Core
                     var portalStart = neighborData.Portal1;
                     var portalEnd = neighborData.Portal2;
                     
-                    var portalNearestPoint = ClosestPointOnSegment(current.Entrance, portalStart, portalEnd);
+                    var portalNearestPoint = GeometryUtils.GetClosestPointOnSegment(current.Entrance, portalStart, portalEnd);
 
-                    var transitionDistance = matrix.GetDistance(current.Entrance, portalNearestPoint);
+                    var transitionDistance = MatrixUtils.GetDistance(matrix, current.Entrance, portalNearestPoint);
                     var cumulativeDistance = current.CumulativeDistance + transitionDistance;
                     
                     if (!lookup.TryGetValue(neighbor, out var existing))
@@ -85,15 +88,7 @@ namespace WaystoneMason.Pathfinding.Core
 
             float DistanceToGoal(Vector2 point)
             {
-                return matrix.GetDistance(point, goalPosition);
-            }
-            
-            static Vector2 ClosestPointOnSegment(Vector2 point, Vector2 a, Vector2 b)
-            {
-                var delta = b - a;
-                var t = Vector2.Dot(point - a, delta) / delta.sqrMagnitude;
-                t = Mathf.Clamp01(t);
-                return a + t * delta;
+                return MatrixUtils.GetDistance(matrix, point, goalPosition);
             }
         }
 

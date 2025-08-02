@@ -1,7 +1,11 @@
+#region
+
 using System.Collections.Generic;
 using Clipper2Lib;
 using UnityEngine;
 using WaystoneMason.Pathfinding.Generation;
+
+#endregion
 
 namespace WaystoneMason.Pathfinding.Core
 {
@@ -47,7 +51,8 @@ namespace WaystoneMason.Pathfinding.Core
                 return;
             }
 
-            _baseContour = Difference(_baseContour, path);
+            _baseContour = Difference(_baseContour, path); 
+            _baseContour = Simplify(_baseContour);
         }
 
         public void Remove(PathsD path) => _obstacles.Remove(path);
@@ -87,6 +92,7 @@ namespace WaystoneMason.Pathfinding.Core
             foreach (var paths in _obstacles) eraser.AddRange(paths);
             
             eraser = Clipper.Union(eraser, FillRule.NonZero);
+            eraser = Simplify(eraser);
 
             var freeSpacePath = Difference(_baseContour, eraser);
             return freeSpacePath;
@@ -176,9 +182,14 @@ namespace WaystoneMason.Pathfinding.Core
 
         private static PathsD Difference(PathsD subject, PathsD eraser)
         {
-            return Clipper.Difference(subject, eraser, FillRule.EvenOdd);
+            return Clipper.Difference(subject, eraser, FillRule.NonZero);
         }
 
+        private static PathsD Simplify(PathsD subject)
+        {
+            return Clipper.SimplifyPaths(subject, .025);
+        }
+        
         #endregion
     }
 }

@@ -1,8 +1,12 @@
+#region
+
 using System;
-using System.Numerics;
 using UnityEngine;
 using WaystoneMason.Pathfinding.Core;
 using WaystoneMason.Utils;
+using Vector2 = UnityEngine.Vector2;
+
+#endregion
 
 namespace WaystoneMason.Agents
 {
@@ -11,19 +15,19 @@ namespace WaystoneMason.Agents
         public float AgentRadius = .25f;
         public float RebuildCallPeriod = .5f;
 
-        [HideInInspector] public bool IsIsometric;
-        [HideInInspector] public float IsometryYScale = 0.5f;
+        public bool IsIsometric;
+        public float IsometryYScale = 0.5f;
         
         private float _nextRebuildAt;
 
         public event Action OnBeforeRebuild;
-        public event Action OnAfterRebuild;
+        public event Action OnAfterRebuildWithAnyChanges;
         
         public NavMesh NavMesh { get; private set; }
 
-        public Matrix3x2 GetOrCreateMatrix()
+        public Vector2 GetOrCreateMatrix()
         {
-            return NavMesh?.FromScreenMatrix ?? CreateMatrix();
+            return NavMesh?.FromScreenScaleMatrix ?? CreateMatrix();
         }
         
         private void Awake()
@@ -48,8 +52,8 @@ namespace WaystoneMason.Agents
             _nextRebuildAt += Mathf.Max(RebuildCallPeriod, 0);
             
             OnBeforeRebuild?.Invoke();
-            NavMesh.Rebuild();
-            OnAfterRebuild?.Invoke();
+            var anyChange = NavMesh.Rebuild();
+            if (anyChange) OnAfterRebuildWithAnyChanges?.Invoke();
         }
         
         private void OnDrawGizmosSelected()
@@ -61,7 +65,7 @@ namespace WaystoneMason.Agents
         {
             var rect = WMObstaclesHolder.Instance.PregeneratedEmptyChunksRegion;
 
-            foreach (var chunkPosition in WMObstaclesHolder.GetChunksInRect(rect.min, rect.max))
+            foreach (var chunkPosition in GeometryUtils.GetChunksInRect(rect.min, rect.max))
             {
                 NavMesh.GetOrCreateChunk(chunkPosition);
             }
@@ -69,11 +73,9 @@ namespace WaystoneMason.Agents
             NavMesh.Rebuild();
         }
 
-        private Matrix3x2 CreateMatrix()
+        private Vector2 CreateMatrix()
         {
-            return IsIsometric 
-                ? MatrixUtils.CreateMatrixForIsometry(IsometryYScale)
-                : Matrix3x2.Identity;
+            return new Vector2(1, IsIsometric ? 1 / IsometryYScale : 1);
         }
     }
 }

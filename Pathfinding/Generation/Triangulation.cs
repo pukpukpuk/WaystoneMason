@@ -1,9 +1,13 @@
+#region
+
 using System.Collections.Generic;
 using System.Linq;
 using Clipper2Lib;
 using LibTessDotNet;
 using UnityEngine;
 using WaystoneMason.Pathfinding.Core;
+
+#endregion
 
 namespace WaystoneMason.Pathfinding.Generation
 {

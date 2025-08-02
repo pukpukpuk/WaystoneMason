@@ -1,11 +1,14 @@
+#region
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using Clipper2Lib;
 using UnityEngine;
 using WaystoneMason.Utils;
 using Vector2 = UnityEngine.Vector2;
+
+#endregion
 
 namespace WaystoneMason.Pathfinding.Core
 {
@@ -17,36 +20,41 @@ namespace WaystoneMason.Pathfinding.Core
         private readonly HashSet<Chunk> _dirtyChunks = new();
 
         public float AgentRadius { get; }
-        public Matrix3x2 FromScreenMatrix { get; }
-        public Matrix3x2 ToScreenMatrix { get; }
+        public Vector2 FromScreenScaleMatrix { get; }
 
-        public NavMesh(float agentRadius) : this(agentRadius, Matrix3x2.Identity)
+        public NavMesh(float agentRadius) : this(agentRadius, Vector2.one)
         {
         }
         
-        public NavMesh(float agentRadius, Matrix3x2 fromScreenMatrix)
+        public NavMesh(float agentRadius, Vector2 fromScreenScaleMatrix)
         {
             AgentRadius = agentRadius;
-            FromScreenMatrix = fromScreenMatrix;
-
-            Matrix3x2.Invert(FromScreenMatrix, out var inverted);
-            ToScreenMatrix = inverted;
+            FromScreenScaleMatrix = fromScreenScaleMatrix;
         }
         
         public bool TryComputePath(Vector2 start, Vector2 goal, out List<Vector2> path)
         {
-            path = null;
+            path = new List<Vector2>();
 
             var startPolygon = FindPolygonContainingPoint(start);
+            if (startPolygon == null)
+            {
+                startPolygon = FindNearestPolygon(start, AgentRadius / 2f, 
+                    FromScreenScaleMatrix, out var closestPoint);
+                if (startPolygon == null) return false;
+                
+                start = closestPoint;
+            }
+            
             var goalPolygon = FindPolygonContainingPoint(goal);
-            if (startPolygon == null || goalPolygon == null) return false;
+            if (goalPolygon == null) return false;
 
-            var polygonPath = AStar.ComputePathBetweenPolygons(startPolygon, goalPolygon, start, goal, FromScreenMatrix);
+            var polygonPath = AStar.ComputePathBetweenPolygons(startPolygon, goalPolygon, start, goal, FromScreenScaleMatrix);
             if (polygonPath == null) return false;
 
             var portals = AStar.GetPortals(polygonPath, start, goal);
 
-            path = AStar.StringPull(portals);
+            path.AddRange(AStar.StringPull(portals));
             return true;
         }
         
@@ -56,10 +64,18 @@ namespace WaystoneMason.Pathfinding.Core
             {
                 throw new ArgumentException("This obstacle is already included!");
             }
+
+            var matrix = FromScreenScaleMatrix;
+            var doScaling = !matrix.Approximately(Vector2.one);
+
+            var normalized = !Clipper.IsPositive(path) ? Clipper.ReversePath(path) : path;
+            var inflated = new PathsD { normalized };
             
-            var inflated = Clipper.InflatePaths(new PathsD {path}, AgentRadius, JoinType.Miter, EndType.Polygon);
+            if (doScaling) inflated = ClipperUtils.Multiply(inflated, matrix);
+            inflated = Clipper.InflatePaths(inflated, AgentRadius, JoinType.Miter, EndType.Polygon);
+            if (doScaling) inflated = ClipperUtils.Divide(inflated, matrix);
+                
             var bounds = Clipper.GetBounds(inflated);
-            
             _cachedInflatedObstacles.Add(path, inflated);
             
             foreach (var chunk in GetObstacleChunks(bounds))
@@ -89,10 +105,14 @@ namespace WaystoneMason.Pathfinding.Core
             return _cachedInflatedObstacles.ContainsKey(path);
         }
 
-        public void Rebuild()
+        public bool Rebuild()
         {
+            var anyChange = _dirtyChunks.Count > 0;
+            
             foreach (var chunk in _dirtyChunks) chunk.Rebuild();
             _dirtyChunks.Clear();
+
+            return anyChange;
         }
 
         public bool TryGetChunk(Vector2Int chunkPosition, out Chunk chunk)
@@ -130,7 +150,9 @@ namespace WaystoneMason.Pathfinding.Core
         {
             return new Vector2Int(Mathf.FloorToInt(position.x / Chunk.Size), Mathf.FloorToInt(position.y / Chunk.Size));
         }
-        
+
+        #region Finding Polygon For Point
+
         private NavMeshPolygon FindPolygonContainingPoint(Vector2 point)
         {
             var chunkPosition = GetChunkPosition(point);
@@ -138,6 +160,43 @@ namespace WaystoneMason.Pathfinding.Core
             
             return chunk.Polygons.FirstOrDefault(polygon => polygon.ContainsPoint(point));
         }
+
+        private NavMeshPolygon FindNearestPolygon(Vector2 point, float radius, Vector2 matrix, out Vector2 closestPoint)
+        {
+            var foundPolygons = new List<NavMeshPolygon>();
+            
+            var offset = matrix * radius;
+            foreach (var chunkPosition in GeometryUtils.GetChunksInRect(point - offset, point + offset))
+            {
+                if (!_chunks.TryGetValue(chunkPosition, out var chunk)) continue;
+
+                foreach (var polygon in chunk.Polygons)
+                {
+                    if (!GeometryUtils.IsPathIntersectsCircumference(polygon.Vertices, point, radius, matrix)) continue;
+                    foundPolygons.Add(polygon);
+                }
+            }
+
+            closestPoint = Vector2.zero;
+            if (foundPolygons.Count == 0) return null;
+
+            NavMeshPolygon result = null;
+            var minDistance = float.MaxValue;
+
+            foreach (var polygon in foundPolygons)
+            {
+                var distance = GeometryUtils.GetDistanceToTriangleContour(point, polygon.Vertices, out var closest);
+                if (distance >= minDistance) continue;
+                
+                minDistance = distance;
+                result = polygon;
+                closestPoint = closest;
+            }
+
+            return result;
+        }
+
+        #endregion
         
         #region Gizmos
         
@@ -147,7 +206,7 @@ namespace WaystoneMason.Pathfinding.Core
             {
                 foreach (var polygon in chunk.Polygons)
                 {
-                    GizmosUtils.DrawPolygon(polygon.Vertices, GizmosUtils.Magenta, .05f, .65f);
+                    GizmosUtils.DrawPolygon(polygon.Vertices, GizmosUtils.Magenta, .22f, .8f);
                 }
             }
         }

@@ -1,5 +1,9 @@
+#region
+
 using UnityEngine;
 using WaystoneMason.Pathfinding.Core;
+
+#endregion
 
 namespace WaystoneMason.Pathfinding.Generation
 {

@@ -1,24 +1,40 @@
-using System;
+#region
+
 using UnityEditor;
+using UnityEngine;
 using WaystoneMason.Agents;
+
+#endregion
 
 namespace WaystoneMason.Editor
 {
     [CustomEditor(typeof(WMNavMeshHolder), true)]
     public class WMNavMeshHolderEditor : UnityEditor.Editor
     {
+        private SerializedProperty _isIsometricProperty;
+        private SerializedProperty _isometryYScaleProperty;
+
+        private void OnEnable()
+        {
+            _isIsometricProperty = serializedObject.FindProperty("IsIsometric");
+            _isometryYScaleProperty = serializedObject.FindProperty("IsometryYScale");
+        }
+        
         public override void OnInspectorGUI()
         {
-            base.OnInspectorGUI();
+            serializedObject.Update();
             
-            var holder = (WMNavMeshHolder)target;
-
-            holder.IsIsometric = EditorGUILayout.Toggle("Is Isometric", holder.IsIsometric);
-            if (holder.IsIsometric)
+            DrawPropertiesExcluding(serializedObject, "IsIsometric", "IsometryYScale");
+            
+            EditorGUILayout.PropertyField(_isIsometricProperty, new GUIContent("Is Isometric"));
+            
+            if (_isIsometricProperty.boolValue)
             {
-                var unclamped = EditorGUILayout.FloatField("Isometry Y Scale", holder.IsometryYScale);
-                holder.IsometryYScale = Math.Clamp(unclamped, 0, 90);
+                var unclamped = EditorGUILayout.FloatField("Isometry Y Scale", _isometryYScaleProperty.floatValue);
+                _isometryYScaleProperty.floatValue = Mathf.Clamp(unclamped, 0, 2);
             }
+
+            serializedObject.ApplyModifiedProperties();
         }
     }
 }
