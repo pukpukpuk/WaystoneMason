@@ -7,7 +7,7 @@
 What makes this project different from existing solutions?
 - Navmeshes are not singletons, allowing agents to have personal NavMeshes.
 - You can manually control how obstacle updates affect the NavMesh,
-  which can be used, for example, to simulate agents’ memory.
+  which can be used, for example, to simulate agents memory.
 
 ---
 
@@ -86,7 +86,6 @@ drop down to the core library level.
 
 To create a NavMesh, you only need to specify the agent collider radius.  
 Note that **the radius cannot be changed after the object is created**.
-In addition to the radius, you can optionally specify a transformation matrix for converting screen coordinates to world coordinates.
 Currently, only distance calculations depend on this.
 ```cs
 var agentRadius = 0.25f;
@@ -129,7 +128,8 @@ if (!navMesh.TryComputePath(start, goal, out var path)) Debug.Log("Agent can't r
 ```
 
 # Semantics of the Name
-**Waystone**: The final path for the agent is a series of corners — places to turn and then move straight —  
+**Waystone**: The final path for the agent is a series of corners - places to turn and then move straight - 
 so they can be called waystones (guiding stones).
 
-**Mason**: The library itself is the *mason*, because it builds the waystones for agents to follow.
+**Mason**: The library itself is the mason, because it builds the waystones for agents to follow.
+
